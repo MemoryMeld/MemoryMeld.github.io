@@ -1,4 +1,9 @@
-# Ghidra Scripting - XRefs and Decompilation
+---
+title: "Ghidra Scripting - XRefs and Decompilation"
+layout: "post"
+categories: "Linux"
+tags: ["Reverse Engineering"]
+---
 
 Hello everyone, I'm excited to share the recent experiments I've been conducting with Ghidra scripting. The capabilities of Ghidra's decompiler and scripting tools truly stand out, surpassing what other disassemblers offer. Ghidra's headless mode particularly empowers researchers, granting the ability to extract essential information from binaries via the command line. The process of individually adding each binary to an active Ghidra project and running separate analyses can be tedious and time-consuming.
 
@@ -17,7 +22,7 @@ ghidra_10.3.3_PUBLIC/./ghidraRun
 Following this, the recommended next step is to establish a 'ghidra\_scripts' folder within your user's home directory or any preferred location. Subsequently, I suggest creating a Ghidra project dedicated to a specific binary. Once done, add your directory by navigating to Window -> Bundle Manager.
 
 
-![](assets/posts/2023-11-12-ghidra-scripting-xrefs/bundle_manager.bmp)
+![](/assets/posts/2023-11-12-ghidra-scripting-xrefs/bundle_manager.bmp)
 
 
 Once our Ghidra scripts path is integrated into the Bundle Manager, the next step involves closing the current project and delving into code creation. A valuable example showcasing the utilization of Ghidra's headless mode for automated binary analysis can be found in this GitHub repository: [https://github.com/h4sh5/ghidra-headless-decompile/tree/master](https://github.com/h4sh5/ghidra-headless-decompile/tree/master). To enable the simultaneous analysis of multiple binaries, I established a dedicated 'binaries' folder, housing each separate binary for analysis. I maintain the Ghidra projects post-analysis, ensuring their availability for further examination if needed. Enclosed is the source code for my initial 'headless\_analyzer.py' script, designed to execute Ghidra's 'analyzeHeadless' shell script for each binary and subsequently run the 'analyzer.py' script to dump decompilation results.
@@ -117,7 +122,7 @@ if __name__ == '__main__':
 ```
 
 
-![](assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_script_initial.bmp)
+![](/assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_script_initial.bmp)
 
 
 The output from executing the 'headless\_analyzer.py' script is now visible, revealing the decompiled results for all three binaries alongside their corresponding Ghidra projects. While the exported source is comprehensive, encompassing not just '.text' code but also ELF header information and thunk functions, there's room for improvement. To refine the results, excluding dead code, thunk functions, and external symbols from the analysis could enhance the quality of the output. Below, I've included updated code for 'headless\_analyzer.py' to integrate a 'cleaned source' functionality.
@@ -292,7 +297,7 @@ if __name__ == '__main__':
 ```
 
 
-![](assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_pretty.bmp)
+![](/assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_pretty.bmp)
 
 
 Upon executing the 'headless\_analyzer.py' script, we now have refined source files for all of the binaries. This marks the culmination of the article and fulfills the main objective outlined at the beginning - obtaining cross-references to specific C library function calls. Below, I've included the final versions of the 'headless\_analyzer.py' and 'analyzer.py' scripts essential for achieving this specific task.
@@ -564,7 +569,7 @@ if __name__ == '__main__':
 ```
 
 
-![](assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_xrefs.bmp)
+![](/assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_xrefs.bmp)
 
 
 The output from running 'headless\_analyzer.py' now incorporates an 'xrefs.txt' file, cataloging the cross-references for all the analyzed binaries. This ability to obtain cross-references to C library function calls across multiple binaries through headless scripting is an incredibly powerful feature. That is all for this blog post, I appreciate everyone taking the time to read it!
