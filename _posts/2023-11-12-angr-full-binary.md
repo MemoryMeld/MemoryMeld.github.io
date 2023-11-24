@@ -5,7 +5,9 @@ categories: "Linux"
 tags: ["Vulnerability Research", "Symbolic Execution", "Reverse Engineering"]
 ---
 
-Hello, everyone. I wanted to share my recent experience using Angr to detect overflows in binaries. I've dedicated several late nights to crafting an Angr script capable of identifying these overflows and now I'm eager to share my findings. My quest has been to explore alternative methods for analyzing binaries for memory corruption. From my experience, automated static analyzers have proven unreliable in detecting memory corruption.\
+Hello everyone, 
+
+I wanted to share my recent experience using Angr to detect overflows in binaries. I've dedicated several late nights to crafting an Angr script capable of identifying these overflows and now I'm eager to share my findings. My quest has been to explore alternative methods for analyzing binaries for memory corruption. From my experience, automated static analyzers have proven unreliable in detecting memory corruption.\
 \
 Even when armed with the source code, I strongly advocate for the utilization of coverage-guided fuzzing tools such as AFL++ or libFuzzer to unearth vulnerabilities, favoring them over static analyzers. My approach primarily involves employing AFL++ in qemu mode for testing binaries. However, complexities arise when handling binaries that rely on socket communication over networks. AFL++, primarily designed for file-based fuzzing, requires a workaround involving desock and binary patching to interact with binaries using sockets. A notable demonstration of this technique can be found in Attify's insightful blog, showcasing the process at [https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/](https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/).\
 \

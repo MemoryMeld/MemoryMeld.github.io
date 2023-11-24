@@ -5,7 +5,9 @@ categories: "Linux"
 tags: ["Reverse Engineering"]
 ---
 
-Hello everyone, I'm excited to share the recent experiments I've been conducting with Ghidra scripting. The capabilities of Ghidra's decompiler and scripting tools truly stand out, surpassing what other disassemblers offer. Ghidra's headless mode particularly empowers researchers, granting the ability to extract essential information from binaries via the command line. The process of individually adding each binary to an active Ghidra project and running separate analyses can be tedious and time-consuming.
+Hello everyone, 
+
+I'm excited to share the recent experiments I've been conducting with Ghidra scripting. The capabilities of Ghidra's decompiler and scripting tools truly stand out, surpassing what other disassemblers offer. Ghidra's headless mode particularly empowers researchers, granting the ability to extract essential information from binaries via the command line. The process of individually adding each binary to an active Ghidra project and running separate analyses can be tedious and time-consuming.
 
 There have been numerous instances where I've needed to swiftly extract firmware and analyze multiple binaries to uncover cross-references related to specific C library function calls. This, in my view, is an area where Ghidra scripting excels. To initiate this process, the first step involves the installation of Ghidra 10.3.3 and running the software.
 
