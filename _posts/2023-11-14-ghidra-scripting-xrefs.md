@@ -82,7 +82,7 @@ Subsequently, I've developed the preliminary code for my 'analyzer.py' script, l
 ```py
 #!/usr/bin/env python2
 
-#@author ReconDeveloper
+#@author MemoryMeld
 #@category 
 #@keybinding 
 #@menupath 
@@ -184,7 +184,7 @@ I've successfully implemented the functionality to print decompilation while exc
 ```py
 #!/usr/bin/env python2
 
-#@author ReconDeveloper
+#@author MemoryMeld
 #@category 
 #@keybinding 
 #@menupath 
@@ -361,7 +361,7 @@ print(f"Elapsed time: {elapsed_time} seconds")
 ```py
 #!/usr/bin/env python2
 
-#@author ReconDeveloper
+#@author MemoryMeld
 #@category 
 #@keybinding 
 #@menupath 
