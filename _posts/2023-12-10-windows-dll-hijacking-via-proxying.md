@@ -13,7 +13,7 @@ In this blog post, I will demonstrate DLL Hijacking on the Teams application. Th
 
 Proceed by adding filters in Procmon with the following criteria: 'Process Name is Teams.exe, Operation is CreateFile, Path contains dll, and Result is NAME NOT FOUND.' Once the changes are applied, you will observe multiple results of Teams attempting to perform a CreateFile operation on DLLs that do not exist in the specified path.
 
-![](/assets/posts/2023-12-10-bypassing-defender-to-run-sliver/generate_sliver.bmp)
+![](/assets/posts/2023-12-10-windows-dll-hijacking-via-proxying/dll_proxy_procmon.bmp)
 
 This is a common issue in Microsoft applications because developers often neglect to specify a path when attempting operations on a DLL. This problem bears similarity to relative path issues in Linux, but I've typically encountered those in Capture The Flag (CTF) or wild-west developer-style binaries. Linux programmers tend to prioritize security, and this issue isn't as widespread as it is with Microsoft.
 
