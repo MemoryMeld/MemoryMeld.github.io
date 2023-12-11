@@ -15,7 +15,7 @@ In certain intricate scenarios, maneuvering through the complexities of patching
 
 \
 The initial method I'll employ is detailed in this article: [https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/](https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/). The approach outlined in this article involves crafting semgrep rules and analyzing Ghidra's decompilation against those rules. However, this method is contingent on the presence of the memcpy function call in the decompilation. Notably, it's a common optimization by compilers to eliminate certain C library calls, including memcpy. In the context of the url\_decode function, the memcpy call is optimized out in both IDA and Ghidra's decompilation. Consequently, the absence of this call causes the semgrep rules to overlook the vulnerable section of code.\
-\
+
 
 ![](/assets/posts/2023-11-12-angr-full-binary/ida_decompilation_tiny.bmp)
 
