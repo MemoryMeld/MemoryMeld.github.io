@@ -84,7 +84,7 @@ smbclient -U "guest"% -L \\\\10.10.11.231\\
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_smb_guest.bmp)
 
 
-Having successfully listed the shares as a guest, we can now utilize smbmap to retrieve the permissions for each of these shares. An informative article at https://snowscan.io/htb-writeup-blackfield/ elaborates that providing an invalid user with no password will lead to a guest session with smbmap. 
+Having successfully listed the shares as a guest, we can now utilize smbmap to retrieve the permissions for each of these shares. An informative article at [https://snowscan.io/htb-writeup-blackfield/#](https://snowscan.io/htb-writeup-blackfield/) elaborates that providing an invalid user with no password will lead to a guest session with smbmap. 
 
 
 ```bash
@@ -119,7 +119,7 @@ ldapsearch -x -D "" -w "" -H ldap://10.10.11.231:389 -b "$naming_context" -s sub
 
 
 
-Our attempt to retrieve LDAP entries as an anonymous user hit a roadblock. Now, let's shift our focus to enumerating Kerberos. We aim to obtain valid AD accounts by leveraging Kerberos Pre-Authentication brute-forcing—an acknowledged tactic that Microsoft hasn't addressed. To manage the brute-forcing efficiently, we'll implement a 15-minute timeout. For this task, we'll employ kerbrute, available at https://github.com/ropnop/kerbrute. 
+Our attempt to retrieve LDAP entries as an anonymous user hit a roadblock. Now, let's shift our focus to enumerating Kerberos. We aim to obtain valid AD accounts by leveraging Kerberos Pre-Authentication brute-forcing—an acknowledged tactic that Microsoft hasn't addressed. To manage the brute-forcing efficiently, we'll implement a 15-minute timeout. For this task, we'll employ kerbrute, available at [https://github.com/ropnop/kerbrute](https://github.com/ropnop/kerbrute).. 
 
 
 ```bash
@@ -155,7 +155,7 @@ GetNPUsers.py rebound.htb/ -usersfile users.txt -dc-ip 10.10.11.231 -format hash
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_as_rep.bmp)
 
 
-Roasting was a success, and now we've got a hash for the jjones user. Our next move is to attempt to crack the hash using hashcat, available at https://hashcat.net/hashcat/. 
+Roasting was a success, and now we've got a hash for the jjones user. Our next move is to attempt to crack the hash using hashcat, available at [https://hashcat.net/hashcat/](https://hashcat.net/hashcat/).
 
 
 ```bash
@@ -166,7 +166,7 @@ hashcat -m 18200 -a 0 -O -w 4 hash rockyou.txt
 
 Unfortunately, I couldn't crack the hash. Since it's a CTF, I opted not to use an extensive wordlist, considering the possibility that the machine creator might have chosen a password from a well-known list if hash cracking was the intended path.
 
-An interesting observation: none of the accounts had UF_DONT_REQUIRE_PREAUTH set. With this in mind, our next move involves attempting to obtain Service Tickets through AS-REQ requests, as detailed at https://www.thehacker.recipes/ad/movement/kerberos/kerberoast#kerberoast-w-o-pre-authentication.
+An interesting observation: none of the accounts had UF_DONT_REQUIRE_PREAUTH set. With this in mind, our next move involves attempting to obtain Service Tickets through AS-REQ requests, as detailed at [https://www.thehacker.recipes/ad/movement/kerberos/kerberoast#kerberoast-w-o-pre-authentication](https://www.thehacker.recipes/ad/movement/kerberos/kerberoast#kerberoast-w-o-pre-authentication)
 
 
 ```bash
@@ -258,7 +258,7 @@ done
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_smb_pass.bmp)
 
 
-Now armed with valid credentials, our next move is to utilize a BloodHound ingestor for comprehensive AD enumeration. A recent find, RustHound at https://github.com/NH-RED-TEAM/RustHound, appears to be an ideal tool for this task. Let's leverage it to gather all the necessary AD information and advance our enumeration efforts!
+Now armed with valid credentials, our next move is to utilize a BloodHound ingestor for comprehensive AD enumeration. A recent find, RustHound at [https://github.com/NH-RED-TEAM/RustHound](https://github.com/NH-RED-TEAM/RustHound), appears to be an ideal tool for this task. Let's leverage it to gather all the necessary AD information and advance our enumeration efforts!
 
 
 ```bash
@@ -272,7 +272,7 @@ Now armed with valid credentials, our next move is to utilize a BloodHound inges
 
 BloodHound might not spell out the next steps, but after a closer look, I found key details. ServiceMGMT holds GenericAll permissions over the Service Users OU. Diving into the RustHound-produced .json files, I identified that winrm_svc resides in the Service Users OU and is part of the Remote Management Users group. Additionally, oorhend boasts WriteOwner permissions.
 
-The strategy is clear: leverage this information to add oorend to the ServiceMGMT group. For this task, I'll employ bloodyAD, a handy tool available at https://github.com/CravateRouge/bloodyAD/wiki/User-Guide.
+The strategy is clear: leverage this information to add oorend to the ServiceMGMT group. For this task, I'll employ bloodyAD, a handy tool available at [https://github.com/CravateRouge/bloodyAD/wiki/User-Guide](https://github.com/CravateRouge/bloodyAD/wiki/User-Guide).
 
 
 ```bash
@@ -294,9 +294,9 @@ python bloodyAD.py -d rebound.htb -u oorend -p 'pass' --host 10.10.11.231 add ge
 ```
 
 
-With full control over the Service Users OU, we're in a powerful position. The observation of a Cert Publishers group in the groups.json from RustHound confirms that the DC relies on certificates for pre-authentication validation (https://www.thehacker.recipes/ad/movement/kerberos/shadow-credentials).
+With full control over the Service Users OU, we're in a powerful position. The observation of a Cert Publishers group in the groups.json from RustHound confirms that the DC relies on certificates for pre-authentication validation [https://www.thehacker.recipes/ad/movement/kerberos/shadow-credentials](https://www.thehacker.recipes/ad/movement/kerberos/shadow-credentials).
 
-Given our GenericAll permission over winrm_svc, we can now obtain its NT hash (https://hideandsec.sh/books/cheatsheets-82c/page/active-directory-certificate-services). Let's leverage this capability to gather the NT hash and use it to log into the machine via WinRM.
+Given our GenericAll permission over winrm_svc, we can now obtain its NT hash [https://hideandsec.sh/books/cheatsheets-82c/page/active-directory-certificate-services](https://hideandsec.sh/books/cheatsheets-82c/page/active-directory-certificate-services). Let's leverage this capability to gather the NT hash and use it to log into the machine via WinRM.
 
 
 ```bash
@@ -307,11 +307,11 @@ certipy shadow auto -account winrm_svc -u "oorend@rebound.htb" -p $passwd -dc-ip
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_certify_winrm.bmp)
 
 
-Having secured a shell, the focus now shifts to privilege escalation. My preferred tool for Windows enumeration is the script available at https://github.com/itm4n/PrivescCheck/tree/master. However, during analysis, an anomaly emerged— the script couldn't fetch information on currently logged-in users. To investigate further, I tested commands like quser (Current Logged on Users), qwinsta (Remote Sessions), and query user winrm_svc (currently logged-in user), and surprisingly, all commands failed.
+Having secured a shell, the focus now shifts to privilege escalation. My preferred tool for Windows enumeration is the script available at [https://github.com/itm4n/PrivescCheck/tree/master](https://github.com/itm4n/PrivescCheck/tree/master). However, during analysis, an anomaly emerged— the script couldn't fetch information on currently logged-in users. To investigate further, I tested commands like quser (Current Logged on Users), qwinsta (Remote Sessions), and query user winrm_svc (currently logged-in user), and surprisingly, all commands failed.
 
 Upon inspecting WinPEAS.ps1, it appears to assume that certain commands might not be present on the system. This observation sparks a hypothesis that this could be a deliberate technique for privilege escalation. It's common in CTFs for machine creators to remove commands that facilitate finding the path forward, making it more challenging.
 
-In the PrivescCheck results section for logged-in users, various attack vectors are outlined, centering around capturing NTLM/Kerberos authentication of other logged-in users. Within this realm, one particularly noteworthy technique is RemotePotato, extensively documented at https://github.com/antonioCoco/RemotePotato0. 
+In the PrivescCheck results section for logged-in users, various attack vectors are outlined, centering around capturing NTLM/Kerberos authentication of other logged-in users. Within this realm, one particularly noteworthy technique is RemotePotato, extensively documented at [https://github.com/antonioCoco/RemotePotato0](https://github.com/antonioCoco/RemotePotato0). 
 
 
 ```powershell
@@ -365,13 +365,13 @@ The initial step involves executing the ReadGMSAPassword attack using bloodyAD.
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_bloody_ad.bmp)
 
 
-Upon revisiting BloodHound, we observe that the delegator$ user possesses constrained delegation capabilities, as discussed in detail in this informative article: https://beta.hackndo.com/constrained-unconstrained-delegation/. The article provides a comprehensive explanation of delegation concepts, and in our scenario, it's evident that we're dealing with Resource Based Constrained Delegation. This is apparent as the delegator$ user can delegate the http service.
+Upon revisiting BloodHound, we observe that the delegator$ user possesses constrained delegation capabilities, as discussed in detail in this informative article: [https://beta.hackndo.com/constrained-unconstrained-delegation/](https://beta.hackndo.com/constrained-unconstrained-delegation/). The article provides a comprehensive explanation of delegation concepts, and in our scenario, it's evident that we're dealing with Resource Based Constrained Delegation. This is apparent as the delegator$ user can delegate the http service.
 
 
 ![](/assets/posts/2023-12-31-htb-rebound/rebound_contrained_delegation.bmp)
 
 
-For attacking Resource Based Constrained Delegation, a viable method is outlined in this resource: https://www.thehacker.recipes/ad/movement/kerberos/delegations/rbcd. The initial step involves obtaining a TGT ticket for the delegator$ user, utilizing the NTLM hash obtained from the ReadGMSAPassword attack. Subsequently, the plan is to leverage Impacket to enable ldap_monitor to impersonate users on delegator$ via S4U2Proxy. 
+For attacking Resource Based Constrained Delegation, a viable method is outlined in this resource: [https://www.thehacker.recipes/ad/movement/kerberos/delegations/rbcd](https://www.thehacker.recipes/ad/movement/kerberos/delegations/rbcd). The initial step involves obtaining a TGT ticket for the delegator$ user, utilizing the NTLM hash obtained from the ReadGMSAPassword attack. Subsequently, the plan is to leverage Impacket to enable ldap_monitor to impersonate users on delegator$ via S4U2Proxy. 
 
 
 ```bash
