@@ -2,7 +2,7 @@
 title: "HTB Rebound"
 layout: "post"
 categories: "Windows"
-tags: ["Red Team, Active Directory Exploitation"]
+tags: ["Red Team", "Active Directory"]
 ---
 
 In this blog, I'll walk you through the process of tackling a recent HackTheBox machine centered around Active Directory. Given the widespread use of Active Directory in organizations, it's crucial for Red Team members to be adept at navigating and exploiting potential misconfigurations.
