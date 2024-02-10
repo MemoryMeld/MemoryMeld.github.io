@@ -5,9 +5,9 @@ categories: "Windows"
 tags: ["Red Team"]
 ---
 
-Hello everyone, this blog will be short and to the point. I plan to cover the process of performing DLL hijacking by proxying a valid DLL. This method is commonly employed by attackers for privilege escalation or to maintain persistence on a Windows machine. While developers can also use this technique to add plug-ins to programs ([https://en.wikipedia.org/wiki/Plug-in\_(computing)](https://en.wikipedia.org/wiki/Plug-in\_\(computing\))), I won't delve into the background of DLL proxying in this blog, as there are already many articles that cover every detail.
+Hello everyone, this blog will be short and to the point. I plan to cover the process of performing DLL hijacking by proxying a valid DLL. This method is commonly employed by attackers for privilege escalation or to maintain persistence on a Windows machine. While developers can also use this technique to add plug-ins to programs ([https://en.wikipedia.org/wiki/Plug-in_(computing)](https://en.wikipedia.org/wiki/Plug-in_(computing))), I won't delve into the background of DLL proxying in this blog, as there are already many articles that cover every detail.
 
-I will be following along with the instructions provided in this GitHub repository: [https://github.com/tothi/dll-hijack-by-proxying/tree/master](https://github.com/tothi/dll-hijack-by-proxying/tree/master), utilizing the same technique. The introduction given on GitHub succinctly explains why adversaries opt for DLL proxying instead of just performing DLL hijacking. In brief, DLL proxying is the easiest way to load arbitrary code into an application without causing it to crash after your code is executed. This is achieved by creating a DLL wrapper ([https://en.wikipedia.org/wiki/Wrapper\_library](https://en.wikipedia.org/wiki/Wrapper\_library)) that exposes the same functions as those exported by the valid DLL library.\
+I will be following along with the instructions provided in this GitHub repository: [https://github.com/tothi/dll-hijack-by-proxying/tree/master](https://github.com/tothi/dll-hijack-by-proxying/tree/master), utilizing the same technique. The introduction given on GitHub succinctly explains why adversaries opt for DLL proxying instead of just performing DLL hijacking. In brief, DLL proxying is the easiest way to load arbitrary code into an application without causing it to crash after your code is executed. This is achieved by creating a DLL wrapper ([https://en.wikipedia.org/wiki/Wrapper_library](https://en.wikipedia.org/wiki/Wrapper_library)) that exposes the same functions as those exported by the valid DLL library.\
 \
 In this blog post, I will demonstrate DLL Hijacking on the Teams application. The initial step involves installing Process Monitor from [https://docs.microsoft.com/en-us/sysinternals/downloads/procmon](https://docs.microsoft.com/en-us/sysinternals/downloads/procmon) on your Windows machine. Subsequently, run the Teams application while monitoring it with Procmon.
 
@@ -15,7 +15,7 @@ Proceed by adding filters in Procmon with the following criteria: 'Process Name 
 
 ![](/assets/posts/2023-12-10-windows-dll-hijacking-via-proxying/dll_proxy_procmon.bmp)
 
-This is a common issue in Microsoft applications because developers often neglect to specify a path when attempting operations on a DLL. This problem bears similarity to relative path issues in Linux, but I've typically encountered those in Capture The Flag (CTF) or wild-west developer-style binaries. Linux programmers tend to prioritize security, and this issue isn't as widespread as it is with Microsoft.
+This is a common issue in Microsoft applications because developers often neglect to specify a path when attempting operations on a DLL. This problem bears similarity to relative path issues in Linux.
 
 In cases where a path isn't specified, Microsoft applications rely on the DLL Search Order. Sektor7 provides a quick video highlighting this issue at [https://institute.sektor7.net/view/courses/rto-windows-persistence/311170-low-privilege-persistence/886839-dll-proxying-introduction](https://institute.sektor7.net/view/courses/rto-windows-persistence/311170-low-privilege-persistence/886839-dll-proxying-introduction). In our example, as shown above, the application directory lacks the version.dll. However, it is present in the System32 directory. Still, this comes after the application's directory in the search order.\
 \
@@ -138,7 +138,7 @@ We will now delve into executing shellcode in the proxy DLL instead of merely ru
 
 Given that we'll be covering the use of Metasploit shellcode in this blog, an anti-virus (AV) bypass is necessary. A method that has gained popularity recently involves utilizing Windows API functions SystemFunction032/SystemFunction033 to perform RC4 decryption of shellcode in memory before executing it. It's worth noting that many AV providers are incorporating detection mechanisms for software employing this function to prevent potential malware threats ([https://support.eset.com/en/ca8496-eset-customer-advisory-modules-review-june-2023](https://support.eset.com/en/ca8496-eset-customer-advisory-modules-review-june-2023)).
 
-While acknowledging that attackers may exploit it maliciously, the original intent of these functions was to offer on-the-fly decryption for developers. An article detailing how Windows incorporated cryptographic routines into various system library calls, eliminating the need for CryptoAPI, can be found here: [https://blog.gentilkiwi.com/tag/systemfunction032](https://blog.gentilkiwi.com/tag/systemfunction032). The function has gained popularity through the Mimikatz tool, but the article explains that internal Windows components also used those system library calls.\
+While acknowledging that attackers may exploit it maliciously, the original intent of these functions was to offer on-the-fly decryption for developers. An article detailing how Windows incorporated cryptographic routines into various system library calls, eliminating the need for CryptoAPI, can be found here: [https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032](https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032). The function has gained popularity through the Mimikatz tool, but the article explains that internal Windows components also used those system library calls.\
 \
 The next step is to generate RC4-encrypted Metasploit code. I have provided the commands below.
 
@@ -203,7 +203,7 @@ DWORD WINAPI RunCodeThread(LPVOID lpParam) {
 
     // Encrypted shellcode
     unsigned char encrypted_bin[] = {
-        // place encrypted shellcode here
+        // Place encrypted shellcode here
     };
 
     size_t size = sizeof(encrypted_bin);

@@ -302,7 +302,7 @@ if __name__ == '__main__':
 ![](/assets/posts/2023-11-12-ghidra-scripting-xrefs/ghidra_pretty.bmp)
 
 
-Upon executing the 'headless\_analyzer.py' script, we now have refined source files for all of the binaries. This marks the culmination of the article and fulfills the main objective outlined at the beginning - obtaining cross-references to specific C library function calls. Below, I've included the final versions of the 'headless\_analyzer.py' and 'analyzer.py' scripts essential for achieving this specific task.
+Upon executing the 'headless\_analyzer.py' script, we now have refined source files for all of the binaries. The last enhancement to the scripts will involve incorporating the capability to retrieve cross-references for specific function calls within the C library. Below, I've included the final versions of the 'headless\_analyzer.py' and 'analyzer.py' scripts essential for achieving this specific task.
 
 ```py
 #!/usr/bin/env python3
