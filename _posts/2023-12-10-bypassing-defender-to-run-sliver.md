@@ -39,7 +39,7 @@ For this blog, I will be writing my code in Go and cross-compiling for Windows. 
 
 ``` bash
 # Install Golang 
-wget go1.21.4.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.21.4.linux-amd64.tar.gz
 sudo tar -C /usr/local -xvf go1.21.4.linux-amd64.tar.gz
 sudo nano ~/.profile
 export PATH=$PATH:/usr/local/go/bin
@@ -163,7 +163,7 @@ func main() {
 	byteSlice := []byte{}
 
 	// AES decryption
-	aesDecrypted, _ := aesDecrypt(byteArray, []byte(aesKey))
+	aesDecrypted, _ := aesDecrypt(byteSlice, []byte(aesKey))
 
 	// XOR decryption
 	xoredData := make([]byte, len(aesDecrypted))
@@ -219,6 +219,7 @@ ulimit -l unlimited
 mkdir build 
 cd build 
 go build -p 8 --ldflags "-X main.xorKey=HelpMeWinlezPlz? -X main.aesKey=SupeRSecrET145*$" decryption_checker.go
+./decryption_checker
 
 diff sliver_data.bin ../FAR_LIVESTOCK.bin
 
