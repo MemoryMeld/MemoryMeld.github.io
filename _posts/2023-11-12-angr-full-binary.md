@@ -161,7 +161,7 @@ def get_function_xrefs(binary_path, excluded_functions):
 def analyze_function(binary, call_start_address, payload_size, output_folder, result_queue, timeout):
     project = angr.Project(binary, load_options={'auto_load_libs': False})
 
-    # Set up the initial state with symbolic stdin
+    # Set up the initial state with concrete (non-symbolic) stdin
     random_payload = os.urandom(payload_size)
     sym = claripy.BVV(random_payload)
     initial_state = project.factory.entry_state(addr=call_start_address, stdin=sym)
