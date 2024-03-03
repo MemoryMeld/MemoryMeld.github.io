@@ -449,7 +449,7 @@ class Analyzer:
 
         return pseudo_c
 
-    def list_cross_references(self, dst_func, tag, output_path):
+    def list_cross_references(self, dst_func, output_path):
         dst_name = dst_func.getName()
         dst_addr = dst_func.getEntryPoint()
         references = getReferencesTo(dst_addr) # limited to 4096 records
@@ -519,7 +519,6 @@ class Analyzer:
             "memcpy", "memset", "bcopy"]
          
 
-        tag = "Imported Function"
         st = ghidra_app.currentProgram.getSymbolTable()
         si = st.getSymbolIterator()
         symbol_dict = {}
@@ -534,7 +533,7 @@ class Analyzer:
             funcs.append(getFunctionAt(address))
 
         for f in funcs:
-           self.list_cross_references(f,tag,output_path)      
+           self.list_cross_references(f,output_path)      
 
 
 def run():
