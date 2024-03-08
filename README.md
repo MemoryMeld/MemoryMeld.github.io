@@ -2,4 +2,4 @@
 
 ## License for Chirpy Theme - published under [MIT][mit] License.
 
-## License for all content on the blog - punlished under [GPL-3.0][gpl-3.0] License. 
+## License for all content on the blog - published under [GPL-3.0][gpl-3.0] License. 
