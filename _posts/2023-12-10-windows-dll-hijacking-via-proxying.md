@@ -138,8 +138,8 @@ We will now delve into executing shellcode in the proxy DLL instead of merely ru
 
 Given that we'll be covering the use of Metasploit shellcode in this blog, an anti-virus (AV) bypass is necessary. A method that has gained popularity recently involves utilizing Windows API functions SystemFunction032/SystemFunction033 to perform RC4 decryption of shellcode in memory before executing it. It's worth noting that many AV providers are incorporating detection mechanisms for software employing this function to prevent potential malware threats ([https://support.eset.com/en/ca8496-eset-customer-advisory-modules-review-june-2023](https://support.eset.com/en/ca8496-eset-customer-advisory-modules-review-june-2023)).
 
-While acknowledging that attackers may exploit it maliciously, the original intent of these functions was to offer on-the-fly decryption for developers. An article detailing how Windows incorporated cryptographic routines into various system library calls, eliminating the need for CryptoAPI, can be found here: [https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032](https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032). The function has gained popularity through the Mimikatz tool, but the article explains that internal Windows components also used those system library calls.\
-\
+While acknowledging that attackers may exploit it maliciously, the original intent of these functions was to offer on-the-fly decryption for developers. An article by the Mimikatz developer details how Windows incorporated cryptographic routines into various system library calls. You can find it here:[https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032](https://web.archive.org/web/20230607111201/https://blog.gentilkiwi.com/tag/systemfunction032). The SystemFunction032 function has gained popularity through the Mimikatz tool, but the article explains that internal Windows components also used those system library calls.
+
 The next step is to generate RC4-encrypted Metasploit code. I have provided the commands below.
 
 ```bash
