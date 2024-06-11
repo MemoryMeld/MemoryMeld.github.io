@@ -1,5 +1,5 @@
 ---
-title: "Dumping LSASS on Windows 11 - InProgress"
+title: "Dumping LSASS on Windows 11 - Part1"
 layout: "post"
 categories: "Windows"
 tags: ["Red Team"]
@@ -91,7 +91,7 @@ wget('https://gist.githubusercontent.com/pich4ya/144d32262861b573279d15e653c4e08
 Invoke-SoHighSoHigh -Command '"coffee"'
 ```
 
-![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11/amsi_patch_ps.bmp)
+![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11-Part1/amsi_patch_ps.bmp)
 
 
 In the image above, we can observe that we're able to load and execute Mimikatz without triggering Defender. However, as OutFlank pointed out in their blog [https://www.outflank.nl/blog/2019/10/20/red-team-tactics-active-directory-recon-using-adsi-and-reflective-dlls/](https://www.outflank.nl/blog/2019/10/20/red-team-tactics-active-directory-recon-using-adsi-and-reflective-dlls/) this technique isn't suitable for mature environments. Cornelis was certainly ahead of the curve when this blog first emerged in 2019.
@@ -470,10 +470,10 @@ Add-Type -TypeDefinition $cs -Language CSharp
 [Test.Program]::Main()
 ```
 
-![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11/hardware_breakpoint_rubeus.bmp)
+![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11-Part1/hardware_breakpoint_rubeus.bmp)
 
 
-When invoking the script from the web server, we observe that it runs Rubeus without triggering any flags. However, to utilize this script effectively, we need to create a .NET assembly capable of performing an LSASS dump. Even with patching AMSI, bypassing Defender remains necessary. Later in the blog, I'll demonstrate how to create a .NET assembly that can be paired with this script.
+When invoking the script from the web server, we observe that it runs Rubeus without triggering any flags. However, to utilize this script effectively, we need to create a .NET assembly capable of performing an LSASS dump. Even with patching AMSI, bypassing Defender remains necessary. In Part2 of this blog, I'll demonstrate how to create a .NET assembly that can be paired with this script.
 
 Moving forward, let's explore another technique: utilizing a vulnerable kernel driver to dump LSASS. This approach has seen a resurgence in usage by many nation-state actors recently. The primary reason for this resurgence is Kernel Patch Protection (KPP).
 
@@ -483,7 +483,7 @@ A BSOD (Blue Screen of Death) is similar to a kernel panic in the Linux kernel. 
 
 As EDR kernel drivers are restricted from hooking kernel-level functions, they required an alternative method to interact with the kernel for data retrieval. This blog provides a comprehensive overview of how EDR interacts with the Windows kernel: [https://web.archive.org/web/20231121022947/http://blog.deniable.org/posts/windows-callbacks/](https://web.archive.org/web/20231121022947/http://blog.deniable.org/posts/windows-callbacks/).
 
-EDR solutions can receive telemetry data via Windows kernel Ps callbacks. Windows permits kernel drivers to register callback routines, which are subsequently invoked when specific events occur, such as process/thread execution and termination, image loads, and registry operations. Enforcing kernel drivers to comply with an API and prohibiting modification of kernel memory is a sound practice. However, if an attacker can load their own kernel module into memory, they can spoof or conceal the data returned from the callbacks, effectively impairing the effectiveness of EDR solutions.
+EDR solutions can receive telemetry data via Windows kernel Ps callbacks. Windows permits kernel drivers to register callback routines, which are subsequently invoked when specific events occur, such as process/thread execution and termination, image loads, and registry operations. Enforcing kernel drivers to comply with an API and prohibiting modification of kernel memory is a sound practice. However, if an attacker can load their own kernel module into memory, they can spoof or conceal the data returned from the callbacks, effectively blinding the EDR solutions.
 
 To mitigate this risk, Microsoft implemented Driver Signature Enforcement to prevent unauthorized kernel modules from loading and thwart the deployment of rootkits.
 
@@ -497,12 +497,11 @@ Attackers began using the BYOVD (Bring Your Own Vulnerable Driver) technique to 
 
 
 
-
 Microsoft has demonstrated a willingness to revoke signatures for drivers, particularly if they are employed in public projects aimed at dumping LSASS. Consequently, if an attacker seeks the power of a Kernel driver but cannot load one, they may resort to a chain of userland exploits against PPL (Protected Process Light) to execute LSASS memory dumping.
 
-Gabriel Landau's BlackHat talk [https://i.blackhat.com/Asia-23/AS-23-Landau-PPLdump-Is-Dead-Long-Live-PPLdump.pdf](https://i.blackhat.com/Asia-23/AS-23-Landau-PPLdump-Is-Dead-Long-Live-PPLdump.pdf) sheds light on a history of userland bugs against PPL that Microsoft only patched after turn-key solutions emerged on GitHub. This includes Landau's own tool, PPLFault, which exploits a TOCTOU (Time-Of-Check Time-Of-Use) bug in Windows Code Integrity to achieve arbitrary code execution as WinTcp-Light, enabling memory dump.
+Gabriel Landau's BlackHat talk [https://i.blackhat.com/Asia-23/AS-23-Landau-PPLdump-Is-Dead-Long-Live-PPLdump.pdf](https://i.blackhat.com/Asia-23/AS-23-Landau-PPLdump-Is-Dead-Long-Live-PPLdump.pdf) sheds light on a history of userland bugs against PPL that Microsoft only patched after turn-key solutions emerged on GitHub. This includes Landau's own tool, PPLFault, which exploits a TOCTOU (Time-Of-Check Time-Of-Use) bug in Windows Code Integrity to achieve arbitrary code execution as WinTcp-Light, then performing a memory dump for the LSASS process.
 
-Landau took this tool a step further with GodFault [https://www.elastic.co/security-labs/forget-vulnerable-drivers-admin-is-all-you-need](https://www.elastic.co/security-labs/forget-vulnerable-drivers-admin-is-all-you-need)., integrating the userland TOCTOU exploit with an unpatched Windows exploit in win32k!NtUserHardErrorControlCall. This allowed Landau to decrement KTHREAD.PreviousMode from UserMode (1) to KernelMode (0) on the migrated CSRSS handle, creating an exploit chain of admin -> PPL -> kernel. This work was also integrated into EDRSandblast, eliminating the need for a vulnerable driver, thereby making it easier for attackers to blind EDR once again.
+Landau took this tool a step further with GodFault [https://www.elastic.co/security-labs/forget-vulnerable-drivers-admin-is-all-you-need](https://www.elastic.co/security-labs/forget-vulnerable-drivers-admin-is-all-you-need)., integrating the userland TOCTOU exploit with an unpatched Windows exploit in `win32k!NtUserHardErrorControlCall`. This allowed Landau to decrement `KTHREAD.PreviousMode` from `UserMode (1)` to `KernelMode (0)` on the migrated CSRSS handle, creating an exploit chain of admin -> PPL -> kernel. This work was also integrated into EDRSandblast, eliminating the need for a vulnerable driver, thereby making it easier for attackers to blind EDR once again.
 
 Microsoft eventually patched the TOCTOU bug after 510 days. In summary, attackers will exploit unpatched vulnerabilities to perform LSASS dumping and attempt to chain exploit primitives to gain write access in the kernel.
 
@@ -771,9 +770,9 @@ go mod tidy
 # Compile Go code into Windows PE
 GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build -o test.exe remote_dump.go
 ```
-![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11/remote_lsass.bmp)
+![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11-Part1/remote_lsass.bmp)
 
-![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11/lsass_dump_transferred.bmp)
+![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11-Part1/lsass_dump_transferred.bmp)
 
 
 
@@ -781,4 +780,4 @@ The screenshots above demonstrate our successful LSASS dump, transferring the co
 
 This technique could be implemented with greater caution toward EDR detection. Moreover, if converted into a .NET assembly, it could be integrated into a C2 framework's inject-assembly functionality to execute it within the existing beacon's process. Subsequently, the contents could be transferred over the same open connection that the C2 has.
 
-I intend to cover the final part of this blog soon, but I wanted to document this work first.
+In Part 2 of this blog, I will demonstrate how to create a .NET assembly to dump LSASS and integrate it with the In-Process Patchless AMSI Bypass PowerShell script discussed earlier. Additionally, I will explore two more LSASS dumping techniques designed to effectively bypass EDR solutions. Thank you for reading, and I look forward to seeing you next time!
