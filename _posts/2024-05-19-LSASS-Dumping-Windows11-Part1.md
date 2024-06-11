@@ -98,11 +98,21 @@ In the image above, we can observe that we're able to load and execute Mimikatz 
 
 Larger organizations often deploy a SIEM such as Splunk and enable script block logging. Script block logging captures a wide array of activities, including the execution of cmdlets, functions, expressions, pipeline operations, variable assignments, control flow statements, error handling, interactive sessions, external scripts, remote PowerShell sessions, scheduled tasks, event handlers, and module loading. These activities are logged if they are enclosed within curly braces {}. This effectively renders the AMSI bypass script and the invoke-mimikatz script ineffective.
 
-It's important to note that if an organization has Splunk and the capability to perform automated monitoring of PowerShell code within script blocks, they likely have an EDR solution enabled as well.
+It's important to note that if an organization has Splunk and the capability to perform automated monitoring of PowerShell code within script blocks, they likely have an EDR solution enabled as well. There is indeed a workaround for script block logging, which involves utilizing Add-Type and embedding C# code blocks.
 
+With the below example, it will log the execution of Add-Type and the invocation of the Main method for the compiled C# class. The log would resemble something like the following:
 
+```yaml 
+Provider Name: Microsoft-Windows-PowerShell
+Event ID: 4104
+Script Block ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+Path: 
+Message:
+- Executing Add-Type with C# code
+- Invoking the Main method of the compiled C# class
+```
 
-There is indeed a workaround for script block logging, which involves utilizing Add-Type and embedding C# code blocks. To demonstrate this technique, I'll be using an In-Process Patchless AMSI Bypass. This process entails setting a hardware breakpoint on the AmsiScanBuffer function, employing a vectored exception handler to alter AMSI scan results, and modifying the CPU's debug registers to control the execution flow.
+For the demonstration of using embedded C# code blocks, I'll be using an In-Process Patchless AMSI Bypass. This process entails setting a hardware breakpoint on the AmsiScanBuffer function, employing a vectored exception handler to alter AMSI scan results, and modifying the CPU's debug registers to control the execution flow.
 
 I've converted this implementation from [https://gist.githubusercontent.com/susMdT/360c64c842583f8732cc1c98a60bfd9e/raw/fd9a00317decf8afd647e0f770fec5ba6e2f89f5/Program.cs](https://gist.githubusercontent.com/susMdT/360c64c842583f8732cc1c98a60bfd9e/raw/fd9a00317decf8afd647e0f770fec5ba6e2f89f5/Program.cs) into a PowerShell script, along with adding a few obfuscation techniques. Here's the code:
 
@@ -473,7 +483,7 @@ Add-Type -TypeDefinition $cs -Language CSharp
 ![](/assets/posts/2024-05-19-LSASS-Dumping-Windows11-Part1/hardware_breakpoint_rubeus.bmp)
 
 
-When invoking the script from the web server, we observe that it runs Rubeus without triggering any flags. However, to utilize this script effectively, we need to create a .NET assembly capable of performing an LSASS dump. Even with patching AMSI, bypassing Defender remains necessary. In Part2 of this blog, I'll demonstrate how to create a .NET assembly that can be paired with this script.
+When invoking the script from the web server, we observe that it runs Rubeus without triggering any flags. However, to utilize this script effectively, we need to create a .NET assembly capable of performing an LSASS dump. Even with patching AMSI, bypassing Defender remains necessary. In Part 2 of this blog, I'll demonstrate how to create a .NET assembly that can be paired with this script.
 
 Moving forward, let's explore another technique: utilizing a vulnerable kernel driver to dump LSASS. This approach has seen a resurgence in usage by many nation-state actors recently. The primary reason for this resurgence is Kernel Patch Protection (KPP).
 
@@ -781,3 +791,4 @@ The screenshots above demonstrate our successful LSASS dump, transferring the co
 This technique could be implemented with greater caution toward EDR detection. Moreover, if converted into a .NET assembly, it could be integrated into a C2 framework's inject-assembly functionality to execute it within the existing beacon's process. Subsequently, the contents could be transferred over the same open connection that the C2 has.
 
 In Part 2 of this blog, I will demonstrate how to create a .NET assembly to dump LSASS and integrate it with the In-Process Patchless AMSI Bypass PowerShell script discussed earlier. Additionally, I will explore two more LSASS dumping techniques designed to effectively bypass EDR solutions. Thank you for reading, and I look forward to seeing you next time!
+
