@@ -96,21 +96,9 @@ Invoke-SoHighSoHigh -Command '"coffee"'
 
 In the image above, we can observe that we're able to load and execute Mimikatz without triggering Defender. However, as OutFlank pointed out in their blog [https://www.outflank.nl/blog/2019/10/20/red-team-tactics-active-directory-recon-using-adsi-and-reflective-dlls/](https://www.outflank.nl/blog/2019/10/20/red-team-tactics-active-directory-recon-using-adsi-and-reflective-dlls/) this technique isn't suitable for mature environments. Cornelis was certainly ahead of the curve when this blog first emerged in 2019.
 
-Larger organizations often deploy a SIEM such as Splunk and enable script block logging. Script block logging captures a wide array of activities, including the execution of cmdlets, functions, expressions, pipeline operations, variable assignments, control flow statements, error handling, interactive sessions, external scripts, remote PowerShell sessions, scheduled tasks, event handlers, and module loading. These activities are logged if they are enclosed within curly braces {}. This effectively renders the AMSI bypass script and the invoke-mimikatz script ineffective.
+Larger organizations often deploy a SIEM such as Splunk and enable script block logging. Script block logging captures a wide array of activities, including the execution of cmdlets, functions, expressions, pipeline operations, variable assignments, control flow statements, error handling, interactive sessions, external scripts, remote PowerShell sessions, scheduled tasks, event handlers, and module loading. This effectively renders the AMSI bypass script and the invoke-mimikatz script ineffective.
 
-It's important to note that if an organization has Splunk and the capability to perform automated monitoring of PowerShell code within script blocks, they likely have an EDR solution enabled as well. There is indeed a workaround for script block logging, which involves utilizing Add-Type and embedding C# code blocks.
-
-With the below example, it will log the execution of Add-Type and the invocation of the Main method for the compiled C# class. The log would resemble something like the following:
-
-```yaml 
-Provider Name: Microsoft-Windows-PowerShell
-Event ID: 4104
-Script Block ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-Path: 
-Message:
-- Executing Add-Type with C# code
-- Invoking the Main method of the compiled C# class
-```
+In organizations using Splunk for automated monitoring of PowerShell code, it's often assumed that there’s an Endpoint Detection and Response (EDR) solution in place. However, the effectiveness of Script-Block Logging really depends on how well the blue team sets up the monitoring rules. It's not unusual to see cases where rules for important commands like Add-Type are missed, even though Add-Type is used to define and load .NET types and classes into the current PowerShell session, including embedded C# code blocks.
 
 For the demonstration of using embedded C# code blocks, I'll be using an In-Process Patchless AMSI Bypass. This process entails setting a hardware breakpoint on the AmsiScanBuffer function, employing a vectored exception handler to alter AMSI scan results, and modifying the CPU's debug registers to control the execution flow.
 
