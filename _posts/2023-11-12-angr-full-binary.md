@@ -1,5 +1,5 @@
 ---
-title: "Angr Overflow Analysis"
+title: "Automated Stack Smashing with Angr"
 layout: "post"
 categories: "Linux"
 tags: ["Vulnerability Research", "Symbolic Execution", "Reverse Engineering"]
@@ -7,29 +7,42 @@ tags: ["Vulnerability Research", "Symbolic Execution", "Reverse Engineering"]
 
 Hello everyone, 
 
-I wanted to share my recent experience using Angr to detect overflows in binaries. I've dedicated several late nights to crafting an Angr script capable of identifying these overflows and now I'm eager to share my findings. My quest has been to explore alternative methods for analyzing binaries for memory corruption. From my experience, automated static analyzers have proven unreliable in detecting memory corruption.\
-\
-Even when armed with the source code, I strongly advocate for the utilization of coverage-guided fuzzing tools such as AFL++ or libFuzzer to unearth vulnerabilities, favoring them over static analyzers. My approach primarily involves employing AFL++ in qemu mode for testing binaries. However, complexities arise when handling binaries that rely on socket communication over networks. AFL++, primarily designed for file-based fuzzing, requires a workaround involving desock and binary patching to interact with binaries using sockets. A notable demonstration of this technique can be found in Attify's insightful blog, showcasing the process at [https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/](https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/).
-\
-In certain intricate scenarios, maneuvering through the complexities of patching binaries can be a daunting task. In these instances, I believe Angr becomes a valuable ally for researchers. I intend to delve into a specific recurrent case, delving into the insights gained while utilizing Angr to detect overflows. For this exploration, I'll be referencing code from the following GitHub repository: [https://github.com/shenfeng/tiny-web-server/tree/master](https://github.com/shenfeng/tiny-web-server/tree/master). This code harbors a known buffer overflow, manifesting at line 255 within the url\_decode function. My focus, however, won't revolve around the discovery and exploitation of this overflow, as these aspects have been extensively covered. Instead, I aim to scrutinize prevalent solutions to discern if they effectively detect this overflow.
+I wanted to share my recent experience using Angr to detect stack-based overflows in binaries. Static analyzers like Fortify have proven unreliable in detecting memory corruption because they lack the ability to track taint flow and rely on static control flow analysis, which doesn’t fully capture how a program behaves during execution.
 
-\
-The initial method I'll employ is detailed in this article: [https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/](https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/). The approach outlined in this article involves crafting semgrep rules and analyzing Ghidra's decompilation against those rules. However, this method is contingent on the presence of the memcpy function call in the decompilation. Notably, it's a common optimization by compilers to eliminate certain C library calls, including memcpy. In the context of the url\_decode function, the memcpy call is optimized out in both IDA and Ghidra's decompilation. Consequently, the absence of this call causes the semgrep rules to overlook the vulnerable section of code.
+Taint flow analysis tracks how untrusted or potentially dangerous data (like user inputs) propagates through a program’s execution. Without dynamic tracking of this tainted data, static tools like Fortify can’t follow how inputs affect variables, memory, or execution paths at runtime, leaving vulnerabilities such as buffer overflows undetected. While Fortify can analyze the code structure and identify vulnerabilities based on known patterns, it doesn’t dynamically trace how inputs influence the program's behavior during execution.
+
+Similarly, Fortify's control flow analysis is limited to a static control flow graph (CFG), which represents possible execution paths in the code based on the program's structure (branches, loops, function calls). However, this static graph doesn't account for the runtime influence of inputs or edge cases that might trigger vulnerabilities. Without real-time path exploration, Fortify can't fully understand how the program reacts under different input conditions or explore exceptional edge cases that could lead to vulnerabilities.
+
+This is where Angr excels. By using symbolic execution, Angr simulates how the binary behaves with various symbolic inputs, dynamically exploring multiple execution paths. This enables it to track how tainted data influences the program and how control flow changes based on different inputs. Angr builds and analyzes its own dynamic control flow graph, considering both the program’s logic and the impact of symbolic inputs. As a result, Angr is much more effective at uncovering vulnerabilities like stack-based overflows that static analyzers like Fortify may miss.
+
+Given the above context, I wanted to test how Angr performs with black-box binaries. My usual approach to finding memory corruption is by using coverage-guided fuzzing tools like AFL++, or libFuzzer if the source code is available. I typically employ AFL++ in qemu mode for testing black-box binaries. Since the ultimate goal of vulnerability research is to find a remote bug, the binaries we deal with often involve sockets.
+
+AFL++ is primarily designed for file-based fuzzing, so it requires workarounds such as desock and binary patching to interact with binaries that use sockets. Attify's blog provides a great guide on how to set this up, which can be found here, [https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/](https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/).
+
+Using AFL++ can be challenging on RISC binaries running on embedded systems because it requires emulating the target runtime environment, including all the dependencies the binary relies on. In contrast, Angr uses symbolic execution, allowing it to explore execution paths without needing a real runtime environment. By treating inputs as symbolic variables, Angr can analyze the binary's behavior directly, making it more flexible and easier to use in situations where emulation would be complex or not feasible.
+
+
+Because Angr is more flexible, I wanted to see how it would do detecting a simple buffer overflow in this Github repository: [https://github.com/shenfeng/tiny-web-server/tree/master](https://github.com/shenfeng/tiny-web-server/tree/master). The code has a buffer overflow at line 255 because the memcpy function writes to the `req->filename buffer`, which is 512 bytes in size, in a loop controlled by `while(*p && --max)`, where `MAXLINE` is 1024, causing an out-of-bounds write. Before I analyze this binary with Angr I want to first see how a few other automated vulnerability discovery techniques do.
+
+
+The first technique I'll employ is detailed in this article: [https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/](https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/). 
+The approach in this article involves using semgrep rules to analyze Ghidra's decompilation, but since compilers often inline functions like memcpy, it's not present in the decompiled code. In the case of the url_decode function, this inlining causes the semgrep rules to overlook the vulnerable section of code.
 
 
 ![](/assets/posts/2023-11-12-angr-full-binary/ida_decompilation_tiny.bmp)
 
 ![](/assets/posts/2023-11-12-angr-full-binary/ghidra_decompilation_tiny.bmp)
 
-Another technique worth discussing involves utilizing cwe\_checker ([https://github.com/fkie-cad/cwe_checker](https://github.com/fkie-cad/cwe_checker)) to identify the vulnerability. However, upon executing cwe\_checker, it does not flag any vulnerability within the url\_decode function.
+Another technique worth discussing involves utilizing cwe\_checker ([https://github.com/fkie-cad/cwe_checker](https://github.com/fkie-cad/cwe_checker)) to identify the vulnerability. However, upon executing cwe\_checker, it doesn't flag any vulnerability within the url\_decode function.
 
 ![](/assets/posts/2023-11-12-angr-full-binary/cwe_checker_tiny.bmp)
 
-Now, I'll delve into my use of Angr to uncover the overflow within the url\_decode function. Despite its effectiveness, leveraging Angr for the analysis of extensive binaries has presented challenges, notably due to path explosion. Symbolic execution, a core aspect of Angr, systematically explores all potential execution paths within a program. However, in the case of large binaries characterized by numerous conditional branches, loops, and intricate control flow, the sheer volume of potential paths can multiply rapidly, leading to what's known as path explosion. This phenomenon significantly slows down the analysis process and often results in freezing my virtual machine.\
-\
-I highly recommend conducting Angr analyses on a VM or host equipped with ample CPU and memory resources to support the demanding nature of this process. In light of path explosion, I've often found greater success by directing Angr to a specific function address, initiating the analysis from that point onward. A great demonstration of this approach, focusing on pinpointing buffer overflows, is detailed in this gitbook: [https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows](https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows).\
-\
-I embarked on the challenge of analyzing the full binary to uncover the memcpy buffer overflow. Through numerous hours dedicated to debugging, making necessary modifications, and enduring VM freezes, I ultimately achieved this task. My initial approach involved extracting all functions from the binary's .text section, constructing a dictionary that Angr could reference during analysis. I specifically aimed to exclude any C library calls and functions attributed to the GCC toolchain. My objective was to obtain the start addresses for each instance the function was called, subsequently utilizing these addresses in Angr for overflow analysis. To accomplish this, I opted to employ radare2 for disassembling the binary due to its command-line interface and user-friendly nature. Below, I've included the code used for this stage.
+I will now use Angr to uncover the overflow within the `url_decode function`. Despite its effectiveness, leveraging Angr for the analysis of extensive binaries has presented challenges, notably due to path explosion. Symbolic execution, a core aspect of Angr, systematically explores all potential execution paths within a program. However, in the case of large binaries characterized by numerous conditional branches, loops, and intricate control flow, the sheer volume of potential paths can multiply rapidly, leading to what's known as path explosion. This significantly slows down the analysis process and often results in freezing my virtual machine.
+
+I highly recommend conducting Angr analyses on a VM or host equipped with ample CPU and memory resources to support the demanding nature of this process.
+In light of path explosion, I've often found greater success by directing Angr to a specific function address and starting the analysis from that point onward. This GitBook shows how to do that: [https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows](https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows).
+
+My first task was to extract all functions from the binary's code section and construct a dictionary that Angr could reference during analysis. I specifically aimed to exclude any C library calls and functions attributed to the GCC toolchain. My objective was to obtain the start addresses for each instance the function was called, which I would later use in Angr for overflow analysis. To achieve this, I decided to use radare2 for disassembling the binary, leveraging its command-line interface and user-friendly nature. Below, I've included the code used for this stage.
 
 ```py
 import r2pipe
@@ -86,7 +99,7 @@ if __name__ == '__main__':
 
 ![](/assets/posts/2023-11-12-angr-full-binary/call_start_addresses.bmp)
 
-The script's output highlights 22 cross-references, with just one pointing to url\_decode. The subsequent phase involves integrating this script logic into my Angr analysis. Enclosed below is the fully implemented script designed to retrieve all call start addresses and conduct buffer overflow analysis on each. To manage the load and mitigate potential VM freezes, I constrained the concurrent processes to 8. The analysis time per process was also limited to 5 seconds, a deliberate measure to address path explosion challenges. Although extending the analysis time could enhance path exploration, in this context, a shallow path traversal sufficed to pinpoint the overflow.
+The script's output highlights 22 cross-references, with just one pointing to url\_decode. The subsequent task involves integrating this script logic into my Angr analysis. Enclosed below is the fully implemented script designed to retrieve all call start addresses and conduct buffer overflow analysis on each. To manage the load and mitigate potential VM freezes, I constrained the concurrent processes to 8. The analysis time per process was also limited to 5 seconds, a deliberate measure to address path explosion challenges. Although extending the analysis time could enhance path exploration, in this context, a shallow path traversal sufficed to pinpoint the overflow.
 
 ```py
 import angr
@@ -259,4 +272,5 @@ else:
 
 ![](/assets/posts/2023-11-12-angr-full-binary/sent_angr_payload.bmp)
 
-Reflecting on the test, it's evident that Angr showcases significant prowess in analyzing entire binaries to unveil shallow bugs. Moreover, when tasked with specific functions, Angr demonstrates exceptional capabilities. While the payload generation may not be immediately relevant, the ability to identify and isolate sections of code proves invaluable, enabling researchers to efficiently prioritize their reverse engineering efforts.
+
+Looking back on the test, it's clear that Angr is highly effective at analyzing whole binaries to uncover simpler bugs. When focused on specific functions, its capabilities really stand out. While payload generation might not be the most relevant in this case, Angr's ability to pinpoint and isolate key sections of code is incredibly useful, allowing researchers to efficiently prioritize their reverse engineering efforts. I appreciate everyone taking the time to read this blog and hopefully find it useful!
