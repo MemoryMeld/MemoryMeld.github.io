@@ -13,36 +13,15 @@ Taint flow analysis tracks how untrusted or potentially dangerous data (like use
 
 Similarly, Fortify's control flow analysis is limited to a static control flow graph (CFG), which represents possible execution paths in the code based on the program's structure (branches, loops, function calls). However, this static graph doesn't account for the runtime influence of inputs or edge cases that might trigger vulnerabilities. Without real-time path exploration, Fortify can't fully understand how the program reacts under different input conditions or explore exceptional edge cases that could lead to vulnerabilities.
 
-This is where Angr excels. By using symbolic execution, Angr simulates how the binary behaves with various symbolic inputs, dynamically exploring multiple execution paths. This enables it to track how tainted data influences the program and how control flow changes based on different inputs. Angr builds and analyzes its own dynamic control flow graph, considering both the program’s logic and the impact of symbolic inputs. As a result, Angr is much more effective at uncovering vulnerabilities like stack-based overflows that static analyzers like Fortify may miss.
+This is where coverage-guided fuzzing excels. Tools like AFL++ or libFuzzer systematically generate and execute inputs while monitoring code coverage, enabling them to explore execution paths dynamically. Unlike static analysis tools like Fortify, which rely on a predefined control flow graph (CFG), coverage-guided fuzzing iteratively uncovers new paths and edge cases by analyzing runtime behavior. This real-time feedback loop allows fuzzers to trigger unexpected states in the program, which is needed to catch modern logic and heap-based bugs.
 
-Given the above context, I wanted to test how Angr performs with black-box binaries. My usual approach to finding memory corruption is by using coverage-guided fuzzing tools like AFL++, or libFuzzer if the source code is available. I typically employ AFL++ in qemu mode for testing black-box binaries. Since the ultimate goal of vulnerability research is to find a remote bug, the binaries we deal with often involve sockets.
-
-AFL++ is primarily designed for file-based fuzzing, so it requires workarounds such as desock and binary patching to interact with binaries that use sockets. Attify's blog provides a great guide on how to set this up, which can be found here, [https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/](https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/).
-
-Using AFL++ can be challenging on RISC binaries running on embedded systems because it requires emulating the target runtime environment, including all the dependencies the binary relies on. In contrast, Angr uses symbolic execution, allowing it to explore execution paths without needing a real runtime environment. By treating inputs as symbolic variables, Angr can analyze the binary's behavior directly, making it more flexible and easier to use in situations where emulation would be complex or not feasible.
+Coverage-guided fuzzers can have limitiations. For instance libFuzzer requires source code, which most researchers will not have access to. AFL++ was designed for file-based fuzzing, so it requires workarounds such as desock and binary patching to interact with binaries that use sockets. Attify's blog provides a great guide on how to set this up, which can be found here, [https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/](https://web.archive.org/web/20230819131007/https://blog.attify.com/fuzzing-iot-binaries-with-afl-part-ii/). There have been many offshute tools and solutions to make coverage-guided fuzzing easier to setup but all of them still have the same issue of emulation. This becomes more challenging when analyzing proprietary firmware and applications that run on embedded systems. Because it requires emulating the target runtime environment and dependencies. 
 
 
-Because Angr is more flexible, I wanted to see how it would do detecting a simple buffer overflow in this Github repository: [https://github.com/shenfeng/tiny-web-server/tree/master](https://github.com/shenfeng/tiny-web-server/tree/master). The code has a buffer overflow at line 255 because the memcpy function writes to the `req->filename buffer`, which is 512 bytes in size, in a loop controlled by `while(*p && --max)`, where `MAXLINE` is 1024, causing an out-of-bounds write. Before I analyze this binary with Angr I want to first see how a few other automated vulnerability discovery techniques do.
+In my experience, there are many shallow bugs in embedded systems that don't follow modern programming practices for C/C++, but properly analyzing them is the hard part. This led me to experiment with symbolic execution, specifically Angr. Unlike coverage-guided fuzzing, which requires emulation of the target runtime environment and dependencies, Angr doesn't face the same issues because it uses symbolic execution. Rather than running the program with actual inputs, Angr explores different execution paths by using symbolic inputs, which allows it to reason about how the program behaves under various conditions without needing to emulate the entire runtime environment. 
 
 
-The first technique I'll employ is detailed in this article: [https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/](https://security.humanativaspa.it/automating-binary-vulnerability-discovery-with-ghidra-and-semgrep/). 
-The approach in this article involves using semgrep rules to analyze Ghidra's decompilation, but since compilers often inline functions like memcpy, it's not present in the decompiled code. In the case of the url_decode function, this inlining causes the semgrep rules to overlook the vulnerable section of code.
-
-
-![](/assets/posts/2023-11-12-angr-full-binary/ida_decompilation_tiny.bmp)
-
-![](/assets/posts/2023-11-12-angr-full-binary/ghidra_decompilation_tiny.bmp)
-
-Another technique worth discussing involves utilizing cwe\_checker ([https://github.com/fkie-cad/cwe_checker](https://github.com/fkie-cad/cwe_checker)) to identify the vulnerability. However, upon executing cwe\_checker, it doesn't flag any vulnerability within the url\_decode function.
-
-![](/assets/posts/2023-11-12-angr-full-binary/cwe_checker_tiny.bmp)
-
-I will now use Angr to uncover the overflow within the `url_decode function`. Despite its effectiveness, leveraging Angr for the analysis of extensive binaries has presented challenges, notably due to path explosion. Symbolic execution, a core aspect of Angr, systematically explores all potential execution paths within a program. However, in the case of large binaries characterized by numerous conditional branches, loops, and intricate control flow, the sheer volume of potential paths can multiply rapidly, leading to what's known as path explosion. This significantly slows down the analysis process and often results in freezing my virtual machine.
-
-I highly recommend conducting Angr analyses on a VM or host equipped with ample CPU and memory resources to support the demanding nature of this process.
-In light of path explosion, I've often found greater success by directing Angr to a specific function address and starting the analysis from that point onward. This GitBook shows how to do that: [https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows](https://breaking-bits.gitbook.io/breaking-bits/vulnerability-discovery/automated-exploit-development/buffer-overflows).
-
-My first task was to extract all functions from the binary's code section and construct a dictionary that Angr could reference during analysis. I specifically aimed to exclude any C library calls and functions attributed to the GCC toolchain. My objective was to obtain the start addresses for each instance the function was called, which I would later use in Angr for overflow analysis. To achieve this, I decided to use radare2 for disassembling the binary, leveraging its command-line interface and user-friendly nature. Below, I've included the code used for this stage.
+With this in mind, I wanted to see how it would do detecting a simple buffer overflow in this Github repository: [https://github.com/shenfeng/tiny-web-server/tree/master](https://github.com/shenfeng/tiny-web-server/tree/master). The code has a simple buffer overflow in the url_decode function because the src buffer is larger than the destination buffer used in the loop calling memcpy. My first task was to extract all functions from the binary's code section and construct a dictionary that Angr could reference during analysis. I specifically aimed to exclude any C library calls and functions attributed to the GCC toolchain. My objective was to obtain the start addresses for each instance the function was called, which I would later use in Angr for overflow analysis. To achieve this, I decided to use radare2 for disassembling the binary, leveraging its command-line interface and user-friendly nature. Below, I've included the code used for this stage.
 
 ```py
 import r2pipe
@@ -67,7 +46,7 @@ def get_function_xrefs(binary_path):
         if function_name in excluded_functions:
             continue
 
-        # Check if the function is in the .text section and not an import
+        # Check if the function is in the code section and not an import
         if not function_name.startswith('sym.imp.'):
             # Analyze cross-references to the function
             xrefs = r2.cmdj(f'axtj {function_name}')
@@ -157,7 +136,7 @@ def get_function_xrefs(binary_path, excluded_functions):
     for function in functions:
         function_name = function['name']
 
-        # Check if the function is in the .text section and not an import
+        # Check if the function is in the code section and not an import
         if not function_name.startswith('sym.imp.') and function_name not in excluded_functions:
             # Analyze cross-references to the function
             xrefs = r2.cmdj(f'axtj {function_name}')
